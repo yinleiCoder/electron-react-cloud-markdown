@@ -1,4 +1,4 @@
-# Markdown云笔记本:cloud:——Electron+React+七牛云
+# Markdown云笔记本（桌面端应用）:cloud:——Electron+React+七牛云
 仿Typora软件：Electron与React的联调（window.loadUrl）
 
 ### 架构：
@@ -14,6 +14,7 @@
 
 1. 初期：
 
+- 搭建前端的工作流
 - 持久化数据，保存文件到本地文件系统
 - 原生菜单，通过菜单和快捷键新建、保存、搜索、重命名文件等
 
