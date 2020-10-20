@@ -20,7 +20,7 @@ fork项目后，进入cloud-markdown-desktop文件夹，并yarn dev即可。
 - 持久化数据，保存文件到本地文件系统
 - 原生菜单，通过菜单和快捷键新建、保存、搜索、重命名文件等
 
-React: 搜索框、文件列表、新建文件、文件tabs、编辑器
+React: 搜索框、文件列表、新建文件、文件tabs、编辑器(markdown：tiny第三方推荐,这里为了简单，使用easyMDE)
 
 Electron: 文件列表右键子菜单、文件导入、应用菜单、全局快捷键、文件数据持久化保存
 
