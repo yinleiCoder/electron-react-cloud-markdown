@@ -12,6 +12,7 @@ app.on('ready', ()=>{
             nodeIntegration: true,
         }
     });
+    mainWindow.webContents.openDevTools()
     const urlLocation = isDev ? 'http://localhost:3000': '线上环境';
     mainWindow.loadURL(urlLocation)
 })
