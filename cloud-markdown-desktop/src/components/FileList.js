@@ -34,26 +34,26 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
             {
                 files.map(file => (
                     <li
-                        className="list-group-item bg-light row  d-flex align-items-center file-item"
+                        className="list-group-item bg-light row  d-flex align-items-center file-item mx-0"
                         key={file.id}
                     >
                         {   (file.id !== editStatus) && 
                             <>
                                 <span className="col-2"><FontAwesomeIcon size="lg" icon={faMarkdown} /></span>
                                 <span 
-                                    className="col-8 c-link"
+                                    className="col-6 c-link"
                                     onClick = {() => {onFileClick(file.id)}}
                                 >{file.title}</span>
                                 <button
                                     type="button"
-                                    className="icon-button col-1"
+                                    className="icon-button col-2"
                                     onClick = {() => {setEditStatus(file.id);setValue(file.title);}}
                                 >
                                     <FontAwesomeIcon title="Edit" size="lg" icon={faEdit} />
                                 </button>
                                 <button
                                     type="button"
-                                    className="icon-button col-1"
+                                    className="icon-button col-2"
                                     onClick = {() => {onFileDelete(file.id)}}
                                 >
                                     <FontAwesomeIcon title="Delete" size="lg" icon={faTrash} />

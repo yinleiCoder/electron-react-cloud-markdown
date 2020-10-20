@@ -6,6 +6,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import FileSearch from './components/FileSearch';
 import FileList from './components/FileList';
 import BottomBtn from './components/BottomBtn';
+import TabList from './components/TabList';
 import defaultFiles from './utils/defaultFiles';
 
 function App() {
@@ -40,8 +41,14 @@ function App() {
             </div>
           </div>
         </div>
-        <div className="col-9 bg-primary right-panel">
-          <h1>This is the Right's content.</h1>
+        <div className="col-9 right-panel">
+          <TabList
+            files={defaultFiles}
+            activeId="1"
+            unsaveIds={["2","3"]}
+            onTabClick={(id) => {console.log(id)}}
+            onCloseTab={(id) => {console.log(id)}}
+          />
         </div>
       </div>
     </div>
