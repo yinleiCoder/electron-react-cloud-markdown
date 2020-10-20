@@ -8,7 +8,9 @@
 - Node.js: 负责本地文件的创建管理、网络文件的下载等
 - 七牛云OSS: 负责本地文件同步到云端，并提供上传和下载的服务
 
+### fork && run：
 
+fork项目后，进入cloud-markdown-desktop文件夹，并yarn dev即可。
 
 ### 需求阶段：
 
