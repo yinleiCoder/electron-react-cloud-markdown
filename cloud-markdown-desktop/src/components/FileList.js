@@ -4,6 +4,12 @@ import { faEdit, faTrash, faTimes } from '@fortawesome/free-solid-svg-icons'
 import { faMarkdown } from '@fortawesome/free-brands-svg-icons'
 import PropTypes from 'prop-types';
 import useKeyPress from '../hooks/useKeyPress'
+import useContextMenu from '../hooks/useContextMenu'
+import {getParentNode} from '../utils/domHelper'
+
+// 创建上下文菜单
+const {remote} = window.require('electron');
+const {Menu, MenuItem} = remote
 
 const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
 
@@ -21,6 +27,39 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
             onFileDelete(editItem.id)
         }
     }
+
+
+    const clickedItem = useContextMenu([
+        {
+            label: '打开',
+            click: () => {
+                const parentElement = getParentNode(clickedItem.current, 'file-item')
+                if(parentElement) {
+                    onFileClick(parentElement.dataset.id)
+                }
+            }
+        },
+        {
+            label: '重命名',
+            click: () => {
+                const parentElement = getParentNode(clickedItem.current, 'file-item')
+                if (parentElement) {
+                    const { id, title } = parentElement.dataset
+                    setEditStatus(id)
+                    setValue(title)
+                }
+            }
+        },
+        {
+            label: '删除',
+            click: () => {
+                const parentElement = getParentNode(clickedItem.current, 'file-item')
+                if (parentElement) {
+                    onFileDelete(parentElement.dataset.id)
+                }
+            }
+        }
+    ], '.file-list', [files])
 
     useEffect(() => {
         const editItem = files.find(file => file.id === editStatus)
@@ -54,28 +93,16 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
                     <li
                         className="list-group-item bg-light row  d-flex align-items-center file-item mx-0"
                         key={file.id}
+                        data-id={file.id}
+                        data-title={file.title}
                     >
                         {   (file.id !== editStatus && !file.isNew) && 
                             <>
                                 <span className="col-2"><FontAwesomeIcon size="lg" icon={faMarkdown} /></span>
                                 <span 
-                                    className="col-6 c-link"
+                                    className="col-10 c-link"
                                     onClick = {() => {onFileClick(file.id)}}
                                 >{file.title}</span>
-                                <button
-                                    type="button"
-                                    className="icon-button col-2"
-                                    onClick = {() => {setEditStatus(file.id);setValue(file.title);}}
-                                >
-                                    <FontAwesomeIcon title="Edit" size="lg" icon={faEdit} />
-                                </button>
-                                <button
-                                    type="button"
-                                    className="icon-button col-2"
-                                    onClick = {() => {onFileDelete(file.id)}}
-                                >
-                                    <FontAwesomeIcon title="Delete" size="lg" icon={faTrash} />
-                                </button>
                             </>
                         }
                         { ((file.id === editStatus) || file.isNew) && 

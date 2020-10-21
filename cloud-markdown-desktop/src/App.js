@@ -70,7 +70,7 @@ function App() {
   const fileListArr = (searchedFiles.length > 0) ? searchedFiles : filesArr
 
   const fileClick = (fileID) => {
-    console.log(files[fileID].body)
+    // console.log(files[fileID].body)
     setActiveFileID(fileID)
     const currentFile = files[fileID]
     if(currentFile.isLoaded) { // 第一次读取该文件
