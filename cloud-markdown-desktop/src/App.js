@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import logo from './logo.svg';
 import { faPlus, faFileImport } from '@fortawesome/free-solid-svg-icons'
 import './App.css';
@@ -13,12 +13,14 @@ import TabList from './components/TabList';
 import defaultFiles from './utils/defaultFiles';
 import {flattenArr, objToArr} from './utils/flattenHelper';
 import fileHelper from './utils/fileHelper';
+import useIpcRenderer from './hooks/useIpcRenderer';
 
 
 const {join,basename, extname, dirname} = window.require('path');
-const {remote} = window.require('electron');
+const {remote,ipcRenderer} = window.require('electron');
 const Store = window.require('electron-store'); //electron-store持久化数据
 const fileStore = new Store({name: 'Files Data'});
+const settingsStore = new Store({name: 'Settings'})
 
 // isNew状态信息等不需要存储到文件系统中
 // alert(remote.app.getPath('userData'))
@@ -47,7 +49,7 @@ const saveFilesToStore = (files) => {
  */
 function App() {
 
-  const savedLocation = remote.app.getPath('documents') // 交给electron渲染进程去做
+  const savedLocation =settingsStore.get('savedFileLocation') || remote.app.getPath('documents') // 交给electron渲染进程去做
 
   // const [files, setFiles] = useState(flattenArr(defaultFiles));
   const [files, setFiles] = useState(fileStore.get('files') || {});
@@ -110,14 +112,6 @@ function App() {
     }
   }
   const saveFile = (id, title, isNew) => {
-    // const newFiles = files.map(file=>{
-    //   if(file.id === id){
-    //     file.title = title
-    //     file.isNew = false
-    //   }
-    //   return file
-    // })
-    // setFiles(newFiles)
     const newPath = isNew ?  join(savedLocation,`${title}.md`)
         : join(dirname(files[id].path),`${title}.md`)
     const modifiedFile = {...files[id], title, isNew: false, path: newPath}
@@ -147,17 +141,6 @@ function App() {
   }
   const createNewFile = () => {
     const newID = uuidv4() //生成唯一uuid
-    // const newFiles = [
-    //   ...files,
-    //   {
-    //     id: newID,
-    //     title: '',
-    //     body: '## Please input markdown sentence !!! ',
-    //     createdAt: new Date().getTime(),
-    //     isNew: true,
-    //   }
-    // ]
-    // setFiles(newFiles)
     const newFile  =  {
       id: newID,
       title: '',
@@ -169,17 +152,12 @@ function App() {
   }
   // 更新markdown
   const fileChange = (id, value) => {
-    // const newFiles = files.map(file => {
-    //   if(file.id === id) {
-    //     file.body = value
-    //   }
-    //   return file
-    // })
-    // setFiles(newFiles)
-    const newFile = {...files[id], body: value}
-    setFiles({ ...files, [id]: newFile})
-    if(!unsavedFileIDs.includes(id)) {
-      setUnsavedFileIDs([...unsavedFileIDs, id])
+    if(value !== files[id].body ) {
+      const newFile = {...files[id], body: value}
+      setFiles({ ...files, [id]: newFile})
+      if(!unsavedFileIDs.includes(id)) {
+        setUnsavedFileIDs([...unsavedFileIDs, id])
+      }
     }
   }
 
@@ -227,6 +205,12 @@ function App() {
       }
     })
   }
+
+  useIpcRenderer({
+    'create-new-file': createNewFile,
+    'import-file': importFiles,
+    'save-edit-file': saveCurrentFile,
+  })
 
   return (
     <div className="App container-fluid px-0">
@@ -283,12 +267,6 @@ function App() {
                 options={{
                   minHeight: '515px',
                 }}
-              />
-              <BottomBtn
-                text="保存"
-                colorClass="btn-success"
-                icon={faFileImport}
-                onBtnClick={saveCurrentFile}
               />
             </>
           }
