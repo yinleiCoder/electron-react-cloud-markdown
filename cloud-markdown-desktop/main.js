@@ -10,6 +10,7 @@ app.on('ready', ()=>{
         height: 680,
         webPreferences: {
             nodeIntegration: true,
+            enableRemoteModule: true
         }
     });
     mainWindow.webContents.openDevTools()

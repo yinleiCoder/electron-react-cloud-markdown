@@ -12,10 +12,30 @@ import BottomBtn from './components/BottomBtn';
 import TabList from './components/TabList';
 import defaultFiles from './utils/defaultFiles';
 import {flattenArr, objToArr} from './utils/flattenHelper';
+import fileHelper from './utils/fileHelper';
 
 
-// const fs = window.require('fs');
-// console.log(fs)
+const {join} = window.require('path');
+const {remote} = window.require('electron');
+const Store = window.require('electron-store'); //electron-store持久化数据
+const fileStore = new Store({name: 'Files Data'});
+
+// isNew状态信息等不需要存储到文件系统中
+// alert(remote.app.getPath('userData'))
+// C:\Users\10991\AppData\Roaming\cloud-markdown-desktop
+const saveFilesToStore = (files) => {
+  const filesStoreObj = objToArr(files).reduce((result, file) => {
+    const {id, path, title, createdAt} = file
+    result[id] = {
+      id, 
+      path,
+      title,
+      createdAt
+    }
+    return result 
+  }, {})
+  fileStore.set('files', filesStoreObj)
+}
 
 /**
  * State分析：
@@ -27,7 +47,10 @@ import {flattenArr, objToArr} from './utils/flattenHelper';
  */
 function App() {
 
-  const [files, setFiles] = useState(flattenArr(defaultFiles));
+  const savedLocation = remote.app.getPath('documents') // 交给electron渲染进程去做
+
+  // const [files, setFiles] = useState(flattenArr(defaultFiles));
+  const [files, setFiles] = useState(fileStore.get('files') || {});
   const [activeFileID, setActiveFileID] = useState('');
   const [openedFileIDs, setOpenedFileIDs] = useState([]);
   const [unsavedFileIDs, setUnsavedFileIDs] = useState([]);
@@ -46,9 +69,16 @@ function App() {
   // const fileListArr = (searchedFiles.length > 0) ? searchedFiles : files
   const fileListArr = (searchedFiles.length > 0) ? searchedFiles : filesArr
 
-
   const fileClick = (fileID) => {
     setActiveFileID(fileID)
+    const currentFile = files[fileID]
+    if(currentFile.isLoaded) { // 第一次读取该文件
+      fileHelper.readFile(currentFile.path).then((value)=>{
+        const newFile = {...files[fileID], body: value, isLoaded: true}
+        setFiles({...files,[fileID]: newFile })
+      })
+    }
+
     if(!openedFileIDs.includes(fileID)) {
       setOpenedFileIDs([...openedFileIDs, fileID])
     }
@@ -66,13 +96,19 @@ function App() {
     }
   } 
   const deleteFile = (id) => {
-    // const newFiles = files.filter(file=>file.id !== id)
-    // setFiles(newFiles)
-    delete files[id]
-    setFiles(files)
-    tabClose(id)
+    if(files[id].isNew) {
+      const { [id]: value, ...afterDelete } = files
+      setFiles(afterDelete)
+    }else {
+      fileHelper.deleteFile(files[id].path).then(()=> {
+        const { [id]: value, ...afterDelete } = files
+        setFiles(afterDelete)
+        saveFilesToStore(afterDelete)
+        tabClose(id)
+      })
+    }
   }
-  const saveFile = (id, title) => {
+  const saveFile = (id, title, isNew) => {
     // const newFiles = files.map(file=>{
     //   if(file.id === id){
     //     file.title = title
@@ -81,8 +117,27 @@ function App() {
     //   return file
     // })
     // setFiles(newFiles)
-    const modifiedFile = {...files[id], title, isNew: false}
-    setFiles({...files, [id]: modifiedFile})
+    const newPath = join(savedLocation,`${title}.md`)
+    const modifiedFile = {...files[id], title, isNew: false, path: newPath}
+    const newFiles = {...files, [id]: modifiedFile}
+    if(isNew) {
+      fileHelper.writeFile(newPath, files[id].body).then(() => {
+        setFiles(newFiles)
+        saveFilesToStore(newFiles)
+      })
+    }else {
+      const oldPath = join(savedLocation,`${files[id].title}.md`)
+      fileHelper.renameFile(oldPath,newPath ).then(() => {
+        setFiles(newFiles)
+        saveFilesToStore(newFiles)
+      })
+    }
+  }
+  const saveCurrentFile = () => {
+      fileHelper.writeFile(join(savedLocation,`${activeFile.title}.md`),
+      activeFile.body).then(() => {
+        setUnsavedFileIDs(unsavedFileIDs.filter(id => id !== activeFile.id))
+      })
   }
   const fileSearch = (keyword) => {
     const newFiles = filesArr.filter(file => file.title.includes(keyword))
@@ -180,6 +235,12 @@ function App() {
                 options={{
                   minHeight: '515px',
                 }}
+              />
+              <BottomBtn
+                text="保存"
+                colorClass="btn-success"
+                icon={faFileImport}
+                onBtnClick={saveCurrentFile}
               />
             </>
           }
