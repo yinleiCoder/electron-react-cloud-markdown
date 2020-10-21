@@ -15,7 +15,7 @@ import {flattenArr, objToArr} from './utils/flattenHelper';
 import fileHelper from './utils/fileHelper';
 
 
-const {join} = window.require('path');
+const {join,basename, extname, dirname} = window.require('path');
 const {remote} = window.require('electron');
 const Store = window.require('electron-store'); //electron-store持久化数据
 const fileStore = new Store({name: 'Files Data'});
@@ -70,6 +70,7 @@ function App() {
   const fileListArr = (searchedFiles.length > 0) ? searchedFiles : filesArr
 
   const fileClick = (fileID) => {
+    console.log(files[fileID].body)
     setActiveFileID(fileID)
     const currentFile = files[fileID]
     if(currentFile.isLoaded) { // 第一次读取该文件
@@ -117,7 +118,8 @@ function App() {
     //   return file
     // })
     // setFiles(newFiles)
-    const newPath = join(savedLocation,`${title}.md`)
+    const newPath = isNew ?  join(savedLocation,`${title}.md`)
+        : join(dirname(files[id].path),`${title}.md`)
     const modifiedFile = {...files[id], title, isNew: false, path: newPath}
     const newFiles = {...files, [id]: modifiedFile}
     if(isNew) {
@@ -126,7 +128,7 @@ function App() {
         saveFilesToStore(newFiles)
       })
     }else {
-      const oldPath = join(savedLocation,`${files[id].title}.md`)
+      const oldPath = files[id].path
       fileHelper.renameFile(oldPath,newPath ).then(() => {
         setFiles(newFiles)
         saveFilesToStore(newFiles)
@@ -134,7 +136,7 @@ function App() {
     }
   }
   const saveCurrentFile = () => {
-      fileHelper.writeFile(join(savedLocation,`${activeFile.title}.md`),
+      fileHelper.writeFile(activeFile.path,
       activeFile.body).then(() => {
         setUnsavedFileIDs(unsavedFileIDs.filter(id => id !== activeFile.id))
       })
@@ -181,6 +183,51 @@ function App() {
     }
   }
 
+  // 使用electron打开原生的dialog
+  const importFiles =() => {
+    remote.dialog.showOpenDialog({
+      title: '选择将要导入的markdown文件',
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        {name: 'Markdown files', extensions: ['md']}
+      ]
+    }).then((result)=>{
+      //canceled filePaths
+      const {canceled,filePaths} = result
+      if(!canceled) {
+        // 查找是否已经在electron store添加过
+        const filteredPaths = filePaths.filter(path => {
+          const alreayAdded = Object.values(files).find(file => {
+            return file.path === path 
+          })
+          return !alreayAdded
+        })
+        // 包装为electron store里每个file格式
+        const importFilesArr = filteredPaths.map(path => {
+          return {
+            id: uuidv4(),
+            title: basename(path, extname(path)),
+            path
+          }
+        })
+        // console.log(importFilesArr)
+        // 获取flattenarray
+        const newFiles = {...files, ...flattenArr(importFilesArr)}
+        // console.log(newFiles)
+        // 更新在electron store
+        setFiles(newFiles)
+        saveFilesToStore(newFiles)
+        if(importFilesArr.length>0) {
+          remote.dialog.showMessageBox({
+            type: 'info',
+            title: `导入提示`,
+            message: `成功导入了${importFilesArr.length}个文件 !!!`,
+          })
+        }
+      }
+    })
+  }
+
   return (
     <div className="App container-fluid px-0">
       <div className="row no-gutters">
@@ -209,6 +256,7 @@ function App() {
                 text="导入"
                 colorClass="btn-success"
                 icon={faFileImport}
+                onBtnClick={importFiles}
               />
             </div>
           </div>
