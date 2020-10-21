@@ -24,18 +24,18 @@ let formUploader = new qiniu.form_up.FormUploader(config);
 let putExtra = new qiniu.form_up.PutExtra();
 let key='react-electron.md'; // 上传后的文件名
 
-// formUploader.putFile(uploadToken, key, localFile, putExtra, function(respErr,
-//     respBody, respInfo) {
-//     if (respErr) {
-//         throw respErr;
-//     }
-//     if (respInfo.statusCode === 200) {
-//         console.log(respBody);
-//     } else {
-//         console.log(respInfo.statusCode);
-//         console.log(respBody);
-//     }
-// });
+formUploader.putFile(uploadToken, key, localFile, putExtra, function(respErr,
+    respBody, respInfo) {
+    if (respErr) {
+        throw respErr;
+    }
+    if (respInfo.statusCode === 200) {
+        console.log(respBody);
+    } else {
+        console.log(respInfo.statusCode);
+        console.log(respBody);
+    }
+});
 
 
 //文件下载【公共空间】
