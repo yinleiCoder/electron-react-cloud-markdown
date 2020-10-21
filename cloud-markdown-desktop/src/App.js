@@ -13,6 +13,10 @@ import TabList from './components/TabList';
 import defaultFiles from './utils/defaultFiles';
 import {flattenArr, objToArr} from './utils/flattenHelper';
 
+
+// const fs = window.require('fs');
+// console.log(fs)
+
 /**
  * State分析：
  * 1. 文件列表
