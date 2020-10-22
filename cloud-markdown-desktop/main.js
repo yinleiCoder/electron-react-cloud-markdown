@@ -89,7 +89,7 @@ app.on('ready', ()=>{
     })
 
     /**
-     * 获取bucket里的文件信息
+     * 获取bucket里的文件信息,比较如果是落后远端就拉取远端到本地
      */
     ipcMain.on('download-file', (event, data) => {
         const manager = createQiniuManager()
