@@ -1,5 +1,8 @@
 
 const qiniu = require('qiniu')
+const axios = require('axios')
+const fs = require('fs');
+const { resolve } = require('path');
 /**
  * 七牛云OSS SDK的二次封装通用的api
  */
@@ -70,6 +73,39 @@ class qiniuManager {
                 throw new Error('域名未找到，请检查测试域名30天是否过期了?')
             }
         })
+    }
+
+    /**
+     * 下载文件
+     *      // 获取下载外链
+        // 发起网络请求
+        // 写入 stream to pipe
+        // 返回请求结果
+     * @param {string}} key 
+     * @param {string} downloadPath 
+     */
+    downloadFile(key, downloadPath) {
+        return this.generateDownloadLink(key).then(link => {
+            const timeStamp = new Date().getTime()
+            const url = `${link}?timestamp=${timeStamp}`
+            return axios({
+                url,
+                method: 'GET',
+                responseType: 'stream',
+                headers: {'Cache-Control': 'no-cache'}
+            }).then(res => {
+                const writer = fs.createWriteStream(downloadPath)
+                res.data.pipe(writer)
+                return new Promise((resolve, reject) => {
+                    writer.on('finish', resolve)
+                    writer.on('error', reject)
+                })
+            }).catch(err => {
+                return Promise.reject({err: err.response})
+            })
+        })
+
+
     }
 
     // hoc高阶函数：即闭包
