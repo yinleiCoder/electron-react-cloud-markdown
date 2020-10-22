@@ -31,7 +31,7 @@ app.on('ready', ()=>{
         height: 768,
     }
     // mainWindow.webContents.openDevTools()
-    const urlLocation = isDev ? 'http://localhost:3000': '线上环境';
+    const urlLocation = isDev ? 'http://localhost:3000': `file://${path.join(__dirname,'./build/index.html')}`;
     mainWindow = new CustomAppWindow(mainWindowConfig, urlLocation)
     mainWindow.on('closed', () => {
         mainWindow = null;
