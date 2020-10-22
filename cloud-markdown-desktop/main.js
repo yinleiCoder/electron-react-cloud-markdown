@@ -113,5 +113,31 @@ app.on('ready', ()=>{
         })
     })
 
+    /**
+     * 全部同步到云端
+     */
+    ipcMain.on('upload-all-to-qiniu',()=> {
+        mainWindow.webContents.send('loading-status',true)
+        const manager = createQiniuManager()
+        const filesObj = fileStore.get('files') || {}
+        const uploadPromiseArr = Object.keys(filesObj).map(key => {
+            const file = filesObj[key]
+            return manager.uploadFile(`${file.title}.md`, file.path)
+        })
+        Promise.all(uploadPromiseArr).then(result => {
+            console.log(result)
+            dialog.showMessageBox({
+                type: 'info',
+                title: '全部同步到云端',
+                message: `成功上传了${result.length}个文件`,
+            })
+            mainWindow.webContents.send('files-uploaded')
+        }).catch(() => {
+            dialog.showErrorBox('同步失败', '请检查您当前的七牛云对象存储的参数配置是否正确！')
+        }).finally(()=> {
+            mainWindow.webContents.send('loading-status',false)
+        })
+    })
+
 })
 

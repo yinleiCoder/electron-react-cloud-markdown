@@ -10,6 +10,7 @@ import FileSearch from './components/FileSearch';
 import FileList from './components/FileList';
 import BottomBtn from './components/BottomBtn';
 import TabList from './components/TabList';
+import Loader from './components/Loader';
 import defaultFiles from './utils/defaultFiles';
 import {flattenArr, objToArr} from './utils/flattenHelper';
 import fileHelper from './utils/fileHelper';
@@ -61,6 +62,8 @@ function App() {
   const [unsavedFileIDs, setUnsavedFileIDs] = useState([]);
 
   const [searchedFiles, setSearchedFiles] = useState([])
+
+  const [isLoading, setLoading] = useState(false)
 
   const filesArr = objToArr(files)
 
@@ -244,16 +247,38 @@ function App() {
     })
   }
 
+  const filesUploaded =() => {
+    const newFiles =  objToArr(files).reduce((result, file) => {
+      const currentTime = new Date().getTime()
+      result[file.id] = {
+        ...files[file.id],
+        isSynced: true,
+        updatedAt: currentTime
+      }
+      return result;
+    }, {})
+    setFiles(newFiles)
+    saveFilesToStore(newFiles)
+  }
+
   useIpcRenderer({
     'create-new-file': createNewFile,
     'import-file': importFiles,
     'save-edit-file': saveCurrentFile,
     'active-file-uploaded': activeFileUploaded,
     'file-downloaded': activeFileDownload,
+    'files-uploaded': filesUploaded,
+    'loading-status': (message, status) => {
+      setLoading(status)
+    },
   })
 
   return (
     <div className="App container-fluid px-0">
+      {
+        isLoading && 
+        <Loader/>
+      }
       <div className="row no-gutters">
         <div className="col-3 bg-light left-panel">
           <FileSearch 
