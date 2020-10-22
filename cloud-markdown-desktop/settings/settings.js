@@ -3,7 +3,7 @@ const { remote, ipcRenderer } = require('electron')
 const Store = require('electron-store')
 const settingsStore = new Store({name: 'Settings'})
 
-// const qiniuConfigArr = ['#savedFileLocation','#accessKey', '#secretKey', '#bucketName']
+const qiniuConfigArr = ['#savedFileLocation','#accessKey', '#secretKey', '#bucketName']
 
 // 模拟jquery选取dom
 const $ = (selector) => {
@@ -17,12 +17,12 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#savedFileLocation').value = savedLocation
   }
   // get the saved config data and fill in the inputs
-  // qiniuConfigArr.forEach(selector => {
-  //   const savedValue = settingsStore.get(selector.substr(1))
-  //   if (savedValue) {
-  //     $(selector).value = savedValue
-  //   }
-  // })
+  qiniuConfigArr.forEach(selector => {
+    const savedValue = settingsStore.get(selector.substr(1))
+    if (savedValue) {
+      $(selector).value = savedValue
+    }
+  })
   $('#select-new-location').addEventListener('click', () => {
     remote.dialog.showOpenDialog({
       properties: ['openDirectory'],
@@ -31,20 +31,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const {canceled,filePaths} = result
         if(!canceled) {
           $('#savedFileLocation').value = filePaths[0]
-          savedLocation = filePaths[0]
         }
     })
   })
   $('#settings-form').addEventListener('submit', (e) => {
     e.preventDefault()
-    // qiniuConfigArr.forEach(selector => {
-    //   if ($(selector)) {
-    //     let { id, value } = $(selector)
-    //     settingsStore.set(id, value ? value : '')
-    //   }
-    // })
-    settingsStore.set('savedFileLocation', savedLocation)
-    // sent a event back to main process to enable menu items if qiniu is configed
+    qiniuConfigArr.forEach(selector => {
+      if ($(selector)) {
+        let { id, value } = $(selector)
+        settingsStore.set(id, value ? value : '')
+      }
+    })
     ipcRenderer.send('config-is-saved')
     remote.getCurrentWindow().close()
   })
