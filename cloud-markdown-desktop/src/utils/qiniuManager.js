@@ -2,7 +2,6 @@
 const qiniu = require('qiniu')
 const axios = require('axios')
 const fs = require('fs');
-const { resolve } = require('path');
 /**
  * 七牛云OSS SDK的二次封装通用的api
  */
@@ -104,8 +103,16 @@ class qiniuManager {
                 return Promise.reject({err: err.response})
             })
         })
+    }
 
-
+    /**
+     * 获取bucket里是否真的有该文件及其文件信息
+     * @param {string} key 
+     */
+    getFileState(key) {
+        return new Promise((resolve, reject) => {
+            this.bucketManager.stat(this.bucket,key,this.handleCallback(resolve, reject))
+        })
     }
 
     // hoc高阶函数：即闭包

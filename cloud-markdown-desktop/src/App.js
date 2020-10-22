@@ -13,6 +13,7 @@ import TabList from './components/TabList';
 import defaultFiles from './utils/defaultFiles';
 import {flattenArr, objToArr} from './utils/flattenHelper';
 import fileHelper from './utils/fileHelper';
+import {timestampToString} from './utils/timeHelper';
 import useIpcRenderer from './hooks/useIpcRenderer';
 
 
@@ -27,12 +28,14 @@ const settingsStore = new Store({name: 'Settings'})
 // C:\Users\10991\AppData\Roaming\cloud-markdown-desktop
 const saveFilesToStore = (files) => {
   const filesStoreObj = objToArr(files).reduce((result, file) => {
-    const {id, path, title, createdAt} = file
+    const {id, path, title, createdAt, updatedAt ,isSynced} = file
     result[id] = {
       id, 
       path,
       title,
-      createdAt
+      createdAt,
+      isSynced,
+      updatedAt
     }
     return result 
   }, {})
@@ -75,11 +78,16 @@ function App() {
     // console.log(files[fileID].body)
     setActiveFileID(fileID)
     const currentFile = files[fileID]
-    if(currentFile.isLoaded) { // 第一次读取该文件
-      fileHelper.readFile(currentFile.path).then((value)=>{
-        const newFile = {...files[fileID], body: value, isLoaded: true}
-        setFiles({...files,[fileID]: newFile })
-      })
+    const {id, title, path, isLoaded} = currentFile
+    if(!isLoaded) { // 第一次读取该文件
+      if(getAutoSync()) {
+        ipcRenderer.send('download-file', {key: `${title}.md`, path, id})
+      }else {
+        fileHelper.readFile(path).then((value)=>{
+          const newFile = {...files[fileID], body: value, isLoaded: true}
+          setFiles({...files,[fileID]: newFile })
+        })
+      }
     }
 
     if(!openedFileIDs.includes(fileID)) {
@@ -130,9 +138,12 @@ function App() {
     }
   }
   const saveCurrentFile = () => {
-      fileHelper.writeFile(activeFile.path,
-      activeFile.body).then(() => {
+      const {path, body, title} = activeFile
+      fileHelper.writeFile(path,body).then(() => {
         setUnsavedFileIDs(unsavedFileIDs.filter(id => id !== activeFile.id))
+        if(getAutoSync()) {
+          ipcRenderer.send('upload_file', {key: `${title}.md`, path})
+        }
       })
   }
   const fileSearch = (keyword) => {
@@ -206,10 +217,39 @@ function App() {
     })
   }
 
+  // 获取自动同步
+  const getAutoSync = () =>['accessKey', 'secretKey', 'bucketName', 'enableAutoSync'].every(key => !!settingsStore.get(key))
+
+  const activeFileUploaded =() => {
+    const {id} = activeFile 
+    const modifiedFile = {...files[id], isSynced: true, updatedAt: new Date().getTime()}
+    const newFiles = {...files, modifiedFile}
+    setFiles(newFiles)
+    saveFilesToStore(newFiles)
+  }
+
+  const activeFileDownload = (event, message) => {
+    const currentFile = files[message.id]
+    const {id, path} = currentFile
+    fileHelper.readFile(path).then(value=> {
+      let newFile
+      if(newFile.status === 'download-success') {
+        newFile = {...files[id], body: value,isLoaded: true, isSynced: true,updatedAt: new Date().getTime() }
+      }else {
+        newFile = {...files[id], body: value,isLoaded: true}
+      }
+      const newFiles= {...files, [id]: newFile}
+      setFiles(newFiles)
+      saveFilesToStore(newFiles)
+    })
+  }
+
   useIpcRenderer({
     'create-new-file': createNewFile,
     'import-file': importFiles,
     'save-edit-file': saveCurrentFile,
+    'active-file-uploaded': activeFileUploaded,
+    'file-downloaded': activeFileDownload,
   })
 
   return (
@@ -268,6 +308,9 @@ function App() {
                   minHeight: '515px',
                 }}
               />
+              {activeFile.isSynced && 
+                <span className="sync-status">已同步，上次同步时间：{timestampToString(activeFile.updatedAt)}</span>
+              }
             </>
           }
         </div>

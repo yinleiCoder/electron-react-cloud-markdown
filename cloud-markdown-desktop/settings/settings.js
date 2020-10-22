@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
         settingsStore.set(id, value ? value : '')
       }
     })
-    ipcRenderer.send('config-is-saved')
+    ipcRenderer.send('config-is-saved') // 发送事件：七牛配置参数保存
     remote.getCurrentWindow().close()
   })
   $('.nav-tabs').addEventListener('click', (e) => {
